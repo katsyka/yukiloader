@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YukiLoader</title>
+<meta name="description" content="Paste a link, get the video. YouTube, TikTok, Instagram, X, Reddit, VK and 1000+ more sites.">
+<link rel="icon" href="favicon.svg">
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--text:#16151a;--dim:#6b6a73;--line:#e4e2dc;--acc:#ff5a36;--acc2:#ffe7df;--ok:#16a34a}
+@media (prefers-color-scheme:dark){:root{--bg:#111014;--card:#1b1a20;--text:#f1f0f4;--dim:#9a98a3;--line:#2c2a33;--acc:#ff6b4a;--acc2:#3a1f19}}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);font:16px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;padding:20px 24px;font-weight:700;font-size:17px}
+header svg{width:28px;height:28px}
+main{flex:1;width:100%;max-width:720px;margin:0 auto;padding:7vh 16px 40px}
+h1{font-size:clamp(34px,6vw,54px);line-height:1.05;letter-spacing:-.03em;font-weight:800}
+h1 em{font-style:normal;color:var(--acc)}
+.sub{color:var(--dim);margin:12px 0 28px;font-size:17px}
+form{display:flex;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:6px;transition:border-color .15s}
+form:focus-within{border-color:var(--acc)}
+input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:17px;padding:0 12px}
+button{font:inherit;cursor:pointer;border:0;border-radius:11px}
+.go{background:var(--acc);color:#fff;font-weight:700;padding:12px 22px}
+.go:disabled{opacity:.6;cursor:default}
+.paste{background:transparent;color:var(--dim);padding:0 12px;font-size:14px}
+.paste:hover{color:var(--text)}
+.err{color:#e11d48;margin-top:14px;min-height:24px;font-size:15px}
+.card{display:none;margin-top:8px;background:var(--card);border:1.5px solid var(--line);border-radius:18px;overflow:hidden}
+.card.on{display:block;animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.meta{display:flex;gap:16px;padding:16px}
+.thumb{flex:none;width:180px;aspect-ratio:16/9;border-radius:10px;background:var(--line) center/cover;position:relative}
+.thumb i{position:absolute;right:6px;bottom:6px;background:#000c;color:#fff;font-style:normal;font-size:12px;padding:1px 6px;border-radius:5px}
+.meta h2{font-size:17px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta p{color:var(--dim);font-size:14px;margin-top:6px}
+.qs{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}
+.q{background:var(--bg);border:1.5px solid var(--line);color:var(--text);padding:9px 14px;font-weight:600;font-size:14px}
+.q:hover{border-color:var(--acc)}
+.q.main{background:var(--acc);border-color:var(--acc);color:#fff}
+.prog{display:none;padding:0 16px 18px}
+.prog.on{display:block}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar b{display:block;height:100%;width:0;background:var(--acc);border-radius:4px;transition:width .3s}
+.bar.ind b{width:30%;animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+.pt{display:flex;justify-content:space-between;color:var(--dim);font-size:14px;margin-top:8px}
+.save{display:none;margin-top:12px;background:var(--ok);color:#fff;font-weight:700;padding:12px 20px;text-decoration:none;border-radius:11px}
+.save.on{display:inline-block}
+.sites{margin-top:44px;color:var(--dim);font-size:14px}
+.sites b{color:var(--text);font-weight:600}
+footer{text-align:center;color:var(--dim);font-size:13px;padding:20px}
+footer a{color:inherit}
+@media (max-width:560px){.meta{flex-direction:column}.thumb{width:100%}.paste{display:none}.go{padding:12px 16px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#ff5a36"/><path d="M16 8v12m0 0-5-5m5 5 5-5M10 24h12" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>YukiLoader</header>
+<main>
+  <h1>Paste a link.<br><em>Get the video.</em></h1>
+  <p class="sub">YouTube, TikTok, Instagram, X, Reddit, VK, Twitch clips and 1000+ more sites. No ads, no sign-up.</p>
+  <form id="f">
+    <input id="u" type="url" inputmode="url" placeholder="https://…" autocomplete="off" autofocus required aria-label="Video link">
+    <button type="button" class="paste" id="paste">Paste</button>
+    <button class="go" id="go">Get video</button>
+  </form>
+  <div class="err" id="err" role="status"></div>
+  <div class="card" id="card">
+    <div class="meta"><div class="thumb" id="th"><i id="dur" hidden></i></div><div><h2 id="ti"></h2><p id="by"></p></div></div>
+    <div class="qs" id="qs"></div>
+    <div class="prog" id="pr">
+      <div class="bar" id="bar"><b></b></div>
+      <div class="pt"><span id="ps">Starting…</span><span id="pe"></span></div>
+      <a class="save" id="save" href="#">Save file</a>
+    </div>
+  </div>
+  <p class="sites">Works with <b>YouTube</b> · <b>TikTok</b> · <b>Instagram</b> · <b>X / Twitter</b> · <b>Reddit</b> · <b>VK</b> · <b>Vimeo</b> · <b>Twitch</b> · <b>SoundCloud</b> · <b>Facebook</b> · and more.</p>
+</main>
+<footer>Part of <a href="https://yuki.yukichat.lol">Yuki</a> · Only download what you have the right to.</footer>
+<script>
+const $ = id => document.getElementById(id);
+const api = async (p, b) => {
+  const r = await fetch(p, b ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) } : {});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'Something went wrong');
+  return j;
+};
+const fmtT = s => s ? (s >= 3600 ? Math.floor(s / 3600) + ':' : '') + String(Math.floor(s % 3600 / 60)).padStart(s >= 3600 ? 2 : 1, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '';
+const fmtB = b => !b ? '' : b > 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.round(b / 1e3) + ' KB';
+let info = null, poll = 0;
+
+$('paste').onclick = async () => { try { $('u').value = (await navigator.clipboard.readText()).trim(); $('f').requestSubmit(); } catch { $('u').focus(); } };
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  clearInterval(poll);
+  $('err').textContent = ''; $('card').classList.remove('on'); $('go').disabled = true; $('go').textContent = 'Looking…';
+  try {
+    info = await api('/api/info', { url: $('u').value });
+    $('th').style.backgroundImage = info.thumb ? `url("${info.thumb.replace(/"/g, '%22')}")` : '';
+    $('dur').hidden = !info.duration; $('dur').textContent = fmtT(info.duration);
+    $('ti').textContent = info.title;
+    $('by').textContent = [info.uploader, info.site].filter(Boolean).join(' · ');
+    const qs = $('qs'); qs.textContent = '';
+    const add = (q, label, main) => { const b = document.createElement('button'); b.className = 'q' + (main ? ' main' : ''); b.textContent = label; b.onclick = () => start(q); qs.append(b); };
+    add('best', info.heights.length ? `Best · ${info.heights[0]}p MP4` : 'Download', true);
+    info.heights.slice(1).forEach(h => add(String(h), h + 'p'));
+    if (info.audio) add('mp3', 'Audio MP3');
+    $('pr').classList.remove('on');
+    $('card').classList.add('on');
+  } catch (x) { $('err').textContent = x.message; }
+  $('go').disabled = false; $('go').textContent = 'Get video';
+};
+
+async function start(q) {
+  clearInterval(poll);
+  $('qs').querySelectorAll('button').forEach(b => b.disabled = true);
+  $('pr').classList.add('on'); $('save').classList.remove('on');
+  $('bar').classList.add('ind'); $('bar').firstChild.style.width = ''; $('ps').textContent = 'Starting…'; $('pe').textContent = '';
+  try {
+    const { id } = await api('/api/job', { url: info.url, q });
+    poll = setInterval(async () => {
+      let s; try { s = await api('/api/job/' + id); } catch (x) { clearInterval(poll); return fail(x.message); }
+      if (s.state === 'downloading' && s.pct != null) {
+        $('bar').classList.remove('ind'); $('bar').firstChild.style.width = s.pct + '%';
+        $('ps').textContent = `${Math.floor(s.pct)}% · ${fmtB(s.got)}`;
+        $('pe').textContent = [s.speed ? fmtB(s.speed) + '/s' : '', s.eta ? fmtT(s.eta) + ' left' : ''].filter(Boolean).join(' · ');
+      } else if (s.state === 'downloading') { $('ps').textContent = 'Downloading · ' + fmtB(s.got); }
+      else if (s.state === 'processing') { $('bar').classList.add('ind'); $('ps').textContent = 'Putting it together…'; $('pe').textContent = ''; }
+      else if (s.state === 'queued' || s.state === 'starting') { $('ps').textContent = 'Waiting in line…'; }
+      else if (s.state === 'error') { clearInterval(poll); fail(s.error); }
+      else if (s.state === 'done') {
+        clearInterval(poll);
+        $('bar').classList.remove('ind'); $('bar').firstChild.style.width = '100%';
+        $('ps').textContent = 'Ready · ' + fmtB(s.size); $('pe').textContent = '';
+        $('save').href = '/api/file/' + id; $('save').classList.add('on');
+        location.href = '/api/file/' + id;
+        $('qs').querySelectorAll('button').forEach(b => b.disabled = false);
+      }
+    }, 700);
+  } catch (x) { fail(x.message); }
+}
+function fail(m) {
+  $('bar').classList.remove('ind'); $('bar').firstChild.style.width = '0';
+  $('ps').textContent = m; $('pe').textContent = '';
+  $('qs').querySelectorAll('button').forEach(b => b.disabled = false);
+}
+const sp = new URLSearchParams(location.search).get('url');
+if (sp) { $('u').value = sp; $('f').requestSubmit(); }
+</script>
+</body>
+</html>
